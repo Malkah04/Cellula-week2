@@ -4,7 +4,7 @@
 
 This project is a **multi-class toxicity classification system** built using **RNN and LSTM** models with PyTorch.
 
-The system accepts **text and/or images** as input and classifies the content into one of several safety-related categories.
+The system accepts **text and/or images** as input and classifies the content into one of **9 safety-related categories**.
 
 For image input, an **image captioning model** is used to generate a textual description of the image. The generated caption is then combined with the user-provided text and passed through the same preprocessing and classification pipeline.
 
@@ -31,7 +31,7 @@ Embedding
      ↓
 RNN / LSTM
      ↓
-Multi-Class Prediction
+9-Class Prediction
      ↓
 SQLite Database
 ```
@@ -40,14 +40,14 @@ SQLite Database
 
 ## 🎯 Project Objective
 
-The main goal of this project is to understand and implement a complete multi-class text classification pipeline using recurrent neural networks.
+The main goal of this project is to implement a complete multi-class toxicity classification pipeline using recurrent neural networks.
 
 The project compares two recurrent architectures:
 
 * RNN
 * LSTM
 
-In addition to the machine learning models, the project extends the classifier into a complete application that can accept both text and image inputs.
+In addition to the machine learning models, the classifier was integrated into a complete application that can accept both text and image inputs.
 
 For image inputs, an image captioning model converts the visual content into text before classification.
 
@@ -55,55 +55,71 @@ For image inputs, an image captioning model converts the visual content into tex
 
 ## 📊 Dataset
 
-The original dataset contains text queries with their corresponding safety-related categories.
+The dataset contains text queries with their corresponding safety-related categories.
 
-The original label mapping contains **9 categories**:
+The classification task contains **9 categories**:
 
-| Label | Category                  | Used for Training |
-| ----: | ------------------------- | :---------------: |
-|     0 | Safe                      |         ✅         |
-|     1 | Violent Crimes            |         ✅         |
-|     2 | Non-Violent Crimes        |         ✅         |
-|     3 | unsafe                    |         ✅         |
-|     4 | Unknown S-Type            |         ✅         |
-|     5 | Sex-Related Crimes        |         ✅         |
-|     6 | Suicide & Self-Harm       |         ✅         |
-|     7 | Elections                 |         ❌         |
-|     8 | Child Sexual Exploitation |         ❌         |
+| Label | Category                  |
+| ----: | ------------------------- |
+|     0 | Safe                      |
+|     1 | Violent Crimes            |
+|     2 | Non-Violent Crimes        |
+|     3 | unsafe                    |
+|     4 | Unknown S-Type            |
+|     5 | Sex-Related Crimes        |
+|     6 | Suicide & Self-Harm       |
+|     7 | Elections                 |
+|     8 | Child Sexual Exploitation |
 
-Although the original dataset contains 9 categories, the models were trained on the classes included in the training data.
+All **9 categories** are included in the final classification task.
 
-The `Elections` and `Child Sexual Exploitation` categories were not included in the training stage.
+Therefore, the neural network output layer contains:
+
+```python
+num_classes = 9
+```
 
 ---
 
 ## 🧹 Data Preparation
 
-Before training the models, the original dataset went through several preparation steps.
+Before training the models, the dataset went through several preparation steps.
 
 ### 1. Label Correction
 
-During the initial data inspection, some text samples were found to have incorrect labels.
+During the initial data inspection, some samples were found to have incorrect labels.
 
-The labels were reviewed and corrected, and a new CSV file was created:
+The labels were manually reviewed and corrected, and the corrected dataset was saved as:
 
 ```text
 train_true_labels.csv
 ```
 
-The corrected labels were then used as the basis for the preprocessing and training stages.
+The corrected labels were then used for preprocessing and model training.
 
-### 2. Class Distribution Analysis
+### 2. Duplicate and Data Inspection
+
+The dataset was inspected for:
+
+* Missing values
+* Duplicate samples
+* Incorrect labels
+* Text length
+* Class distribution
+
+This helped identify data quality issues and understand the structure of the dataset before training.
+
+### 3. Class Distribution Analysis
 
 The class distribution was analyzed to identify underrepresented categories.
 
-Some categories contained very few samples, which made learning their characteristics more difficult.
+The dataset is highly imbalanced, with some classes containing significantly fewer samples than the majority classes.
 
-### 3. Manual Minority-Class Augmentation
+### 4. Minority-Class Augmentation
 
 Additional text records were manually added to extremely small minority classes.
 
-This provided the models with more examples of underrepresented categories during training.
+This was done to provide the models with more examples of the underrepresented categories.
 
 ---
 
@@ -114,6 +130,8 @@ The text was converted into numerical representations that could be processed by
 ### 1. Text Cleaning
 
 The input text was cleaned before tokenization.
+
+The same preprocessing pipeline is used during both training and inference to ensure consistency between the training data and the Streamlit application.
 
 ### 2. Tokenization
 
@@ -205,11 +223,9 @@ The combined text then goes through the same preprocessing and classification pi
 
 ## 🧠 Model Architecture
 
-Two recurrent neural network architectures were implemented.
+Two recurrent neural network architectures were implemented using PyTorch.
 
 ### RNN
-
-The RNN architecture is:
 
 ```text
 Input Sequence
@@ -220,14 +236,10 @@ RNN
       ↓
 Fully Connected Layer
       ↓
-Multi-Class Output
+9-Class Output
 ```
 
-The RNN processes the input sequence step by step while maintaining a hidden state.
-
 ### LSTM
-
-The LSTM architecture is:
 
 ```text
 Input Sequence
@@ -238,10 +250,10 @@ LSTM
       ↓
 Fully Connected Layer
       ↓
-Multi-Class Output
+9-Class Output
 ```
 
-LSTM uses gates to control which information should be retained or forgotten from previous time steps.
+The LSTM uses gates to control which information should be retained or forgotten from previous time steps, allowing it to better handle dependencies across sequences.
 
 ---
 
@@ -253,15 +265,18 @@ The training process includes:
 
 1. Loading the prepared dataset
 2. Preprocessing the text
-3. Converting text into numerical sequences
-4. Creating PyTorch tensors
-5. Creating training and testing datasets
-6. Loading the data using DataLoaders
-7. Forward propagation
-8. Calculating the loss
-9. Backpropagation
-10. Updating model parameters
-11. Evaluating the trained models
+3. Building the vocabulary
+4. Tokenizing the text
+5. Converting text into numerical sequences
+6. Padding sequences
+7. Creating PyTorch tensors
+8. Splitting the data into training and test sets
+9. Creating DataLoaders
+10. Forward propagation
+11. Calculating the loss
+12. Backpropagation
+13. Updating model parameters
+14. Evaluating the trained models
 
 ---
 
@@ -276,7 +291,9 @@ Several techniques were explored to improve minority-class learning, including:
 * Class weighting
 * Oversampling
 * Different RNN/LSTM architectures
-* Different preprocessing approaches
+* Different preprocessing configurations
+
+Because the dataset is imbalanced, evaluation does not rely only on accuracy.
 
 ---
 
@@ -292,27 +309,187 @@ The models were evaluated using:
 * Confusion Matrix
 * Classification Report
 
-Macro F1-score was given particular attention because the dataset is imbalanced and it gives equal importance to each class.
+### Why Macro F1?
+
+Macro F1-score was given particular attention because the dataset is highly imbalanced.
+
+Macro F1 calculates the F1-score independently for each class and then gives every class equal importance.
+
+This makes it more informative than accuracy when minority classes are important.
 
 ---
 
-## 📊 Results
+# 📊 Model Results
 
-### RNN
+## LSTM Results
 
-| Metric      | Result |
-| ----------- | -----: |
-| Accuracy    |   0.94 |
-| Macro F1    |   0.84 |
-| Weighted F1 |   0.94 |
-
-### LSTM
+### Training Performance
 
 | Metric      | Result |
 | ----------- | -----: |
-| Accuracy    |   0.99 |
-| Macro F1    |   0.93 |
-| Weighted F1 |   0.98 |
+| Loss        | 0.4209 |
+| Accuracy    | 92.28% |
+| Macro F1    | 0.8264 |
+| Weighted F1 | 0.9331 |
+
+### Training Confusion Matrix
+
+```text
+[[686   0   2   0  36   0   0   0   0]
+ [  4 547  11   9   1   0   0   1   0]
+ [ 17   0 200  33   0   1   0   2   0]
+ [  0   0   0  22   0   0   0   0   0]
+ [  7   0   0   0  13   0   0   0   0]
+ [  1   0   1   0   0  24   0   0   0]
+ [  1   0   0   0   2   0  17   0   0]
+ [  0   0   0   0   0   0   0  17   0]
+ [  0   0   0   0   0   0   0   0  17]]
+```
+
+### Test Performance
+
+| Metric      |     Result |
+| ----------- | ---------: |
+| Loss        |     0.7170 |
+| Accuracy    |     86.16% |
+| Macro F1    | **0.6875** |
+| Weighted F1 |     0.8858 |
+
+### Test Classification Report
+
+| Category                  | Precision | Recall | F1-Score | Support |
+| ------------------------- | --------: | -----: | -------: | ------: |
+| Safe                      |      0.93 |   0.86 |     0.89 |     182 |
+| Violent Crimes            |      0.99 |   0.97 |     0.98 |     144 |
+| Non-Violent Crimes        |      0.92 |   0.70 |     0.79 |      63 |
+| unsafe                    |      0.28 |   0.83 |     0.42 |       6 |
+| Unknown S-Type            |      0.08 |   0.40 |     0.13 |       5 |
+| Sex-Related Crimes        |      1.00 |   0.50 |     0.67 |       6 |
+| Suicide & Self-Harm       |      0.57 |   0.80 |     0.67 |       5 |
+| Elections                 |      0.80 |   1.00 |     0.89 |       4 |
+| Child Sexual Exploitation |      0.75 |   0.75 |     0.75 |       4 |
+
+The LSTM achieved strong performance on the majority classes, particularly **Violent Crimes** and **Safe**.
+
+However, performance was lower on minority classes such as **Unknown S-Type**, **unsafe**, and **Sex-Related Crimes**.
+
+The difference between training and test performance indicates some degree of overfitting, especially for the minority classes.
+
+---
+
+# RNN Results
+
+### Training Performance
+
+| Metric      | Result |
+| ----------- | -----: |
+| Loss        | 1.3483 |
+| Accuracy    | 98.80% |
+| Macro F1    | 0.9436 |
+| Weighted F1 | 0.9874 |
+
+### Training Confusion Matrix
+
+```text
+[[724   0   0   0   0   0   0   0   0]
+ [  2 566   3   1   0   0   0   1   0]
+ [  2   0 251   0   0   0   0   0   0]
+ [  0   0   1  21   0   0   0   0   0]
+ [  5   0   1   0  11   0   3   0   0]
+ [  0   0   0   0   0  26   0   0   0]
+ [  0   0   0   0   1   0  19   0   0]
+ [  0   0   0   0   0   0   0  17   0]
+ [  0   0   0   0   0   0   0   0  17]]
+```
+
+### Test Performance
+
+| Metric      |     Result |
+| ----------- | ---------: |
+| Loss        |     1.7150 |
+| Accuracy    | **89.74%** |
+| Macro F1    |     0.6189 |
+| Weighted F1 | **0.8934** |
+
+### Test Confusion Matrix
+
+```text
+[[174   2   1   0   1   0   4   0   0]
+ [  0 140   2   1   0   0   1   0   0]
+ [  7   2  50   3   0   0   1   0   0]
+ [  1   0   4   1   0   0   0   0   0]
+ [  5   0   0   0   0   0   0   0   0]
+ [  1   1   0   0   0   3   1   0   0]
+ [  2   0   1   0   0   0   2   0   0]
+ [  1   0   0   0   0   0   0   3   0]
+ [  0   0   1   0   0   0   0   0   3]]
+```
+
+The RNN achieved a higher test accuracy than the LSTM.
+
+However, the RNN achieved a lower Macro F1-score, which indicates that its performance is less balanced across the nine classes.
+
+The model performs very well on the majority classes but struggles with several minority classes, especially **Unknown S-Type**, **unsafe**, and **Suicide & Self-Harm**.
+
+The large difference between training Macro F1 (**0.9436**) and test Macro F1 (**0.6189**) also indicates noticeable overfitting.
+
+---
+
+# 🔍 Model Comparison
+
+| Model    | Test Accuracy | Test Macro F1 | Test Weighted F1 |
+| -------- | ------------: | ------------: | ---------------: |
+| **RNN**  |    **89.74%** |        0.6189 |       **89.34%** |
+| **LSTM** |        86.16% |    **0.6875** |           88.58% |
+
+### Analysis
+
+The results show that **accuracy alone is not sufficient** for evaluating this classification task because the dataset is highly imbalanced.
+
+The RNN achieved:
+
+* Higher test accuracy
+* Higher weighted F1-score
+
+The LSTM achieved:
+
+* Higher test Macro F1-score
+* Better balance across the nine classes
+
+Therefore, the results can be summarized as:
+
+```text
+RNN:
+Better overall accuracy
+Better majority-class performance
+
+LSTM:
+Better Macro F1
+Better balance across classes
+```
+
+Since the dataset is highly imbalanced, **Macro F1 is considered an important metric when comparing the two models**.
+
+---
+
+## ⚠️ Minority-Class Challenge
+
+The minority classes contain very few test samples.
+
+For example:
+
+| Category                  | Test Support |
+| ------------------------- | -----------: |
+| unsafe                    |            6 |
+| Unknown S-Type            |            5 |
+| Sex-Related Crimes        |            6 |
+| Suicide & Self-Harm       |            5 |
+| Elections                 |            4 |
+| Child Sexual Exploitation |            4 |
+
+Because these classes have very small test sets, a small number of incorrect predictions can significantly affect their precision, recall, and F1-score.
+
+This is an important limitation of the current dataset and should be considered when interpreting the results.
 
 ---
 
@@ -320,19 +497,27 @@ Macro F1-score was given particular attention because the dataset is imbalanced 
 
 The trained models were integrated into a complete application.
 
-The application consists of three main components:
-
 ```text
-Streamlit Frontend
-        ↓
-      Backend
-        ↓
- RNN / LSTM + BLIP
-        ↓
- SQLite Database
+                 Streamlit Frontend
+                         ↓
+                      Backend
+                         ↓
+              ┌──────────┴──────────┐
+              ↓                     ↓
+        Image Captioning        Model Selection
+              ↓                ┌────┴────┐
+          BLIP Caption         ↓         ↓
+              ↓               RNN       LSTM
+              └───────────────┬─────────┘
+                              ↓
+                         Prediction
+                              ↓
+                       SQLite Database
 ```
 
-### Streamlit
+---
+
+## 🌐 Streamlit Application
 
 A **Streamlit web application** was developed to provide an interactive interface for the classifier.
 
@@ -343,29 +528,86 @@ The application allows the user to:
 * Use text and image together
 * Select the classification model
 * Choose between **RNN and LSTM**
+* Generate an image caption
 * View the predicted category
-* View the prediction confidence
+* View prediction confidence
+* Store the prediction in SQLite
 
-### Backend
+The interface dynamically selects the model based on the user's choice.
 
-A backend layer was implemented to handle the application logic.
+Example:
 
-The backend connects the Streamlit interface with:
+```text
+Model:
+○ RNN
+○ LSTM
 
-* Text preprocessing
-* Image captioning
-* RNN model
-* LSTM model
-* Prediction processing
-* SQLite database
+Text:
+[ User input ]
 
-This keeps the application interface separate from the machine learning logic.
+Image:
+[ Optional image upload ]
 
-### SQLite Database
+[ Predict ]
+```
 
-A **SQLite database** was added to store prediction results.
+The result displays information such as:
 
-The database stores information related to each prediction, including:
+```text
+Selected Model: LSTM
+Predicted Category: Safe
+Confidence: 0.91
+Image Caption: "a person standing outside"
+```
+
+---
+
+# 🔧 Backend
+
+A backend layer was implemented to connect the Streamlit interface with the machine learning components.
+
+The backend is responsible for:
+
+* Receiving user input
+* Handling text input
+* Processing uploaded images
+* Generating image captions
+* Combining text and image captions
+* Applying the same preprocessing used during training
+* Selecting the RNN or LSTM model
+* Running inference
+* Returning the prediction and confidence
+* Saving prediction results to SQLite
+
+The general backend flow is:
+
+```text
+Streamlit
+    ↓
+Backend
+    ↓
+Input Processing
+    ↓
+Image Captioning (optional)
+    ↓
+Text + Caption
+    ↓
+Preprocessing
+    ↓
+Selected Model
+    ↓
+Prediction
+    ↓
+SQLite
+```
+
+---
+
+# 🗄️ SQLite Database
+
+A local **SQLite database** was added to store prediction history.
+
+The database stores information including:
 
 * Input type
 * Input text
@@ -373,32 +615,55 @@ The database stores information related to each prediction, including:
 * Image path
 * Generated image caption
 * Predicted label
-* Confidence
+* Prediction confidence
 * Prediction timestamp
 
-This allows prediction results to be stored and retrieved locally without requiring an external database server.
+Example database structure:
+
+```text
+predictions
+├── id
+├── input_type
+├── input_text
+├── model_type
+├── image_path
+├── image_caption
+├── predicted_label
+├── confidence
+└── created_at
+```
+
+SQLite was selected because it is lightweight, local, and does not require a separate database server.
 
 ---
 
 # 🔀 Application Workflow
 
-The application supports multiple input scenarios.
-
-### Text Only
+## Text Only
 
 ```text
 User Text
     ↓
 Preprocessing
     ↓
+Tokenization
+    ↓
+Sequence Conversion
+    ↓
+Padding
+    ↓
 RNN / LSTM
     ↓
-Prediction
+9-Class Prediction
+    ↓
+Confidence
     ↓
 SQLite
 ```
 
-### Image Only
+---
+
+## Image Only
 
 ```text
 Image
@@ -409,32 +674,50 @@ Generated Caption
   ↓
 Preprocessing
   ↓
+Tokenization
+  ↓
+Sequence Conversion
+  ↓
+Padding
+  ↓
 RNN / LSTM
   ↓
-Prediction
+9-Class Prediction
+  ↓
+Confidence
   ↓
 SQLite
 ```
 
-### Text + Image
+---
+
+## Text + Image
 
 ```text
-User Text ──────────────┐
-                        ↓
+User Text ──────────────────┐
+                            ↓
 Image → BLIP → Caption → Combined Text
                               ↓
-                        Preprocessing
+                         Preprocessing
+                              ↓
+                         Tokenization
+                              ↓
+                       Sequence Conversion
+                              ↓
+                            Padding
                               ↓
                          RNN / LSTM
                               ↓
-                         Prediction
+                       9-Class Prediction
                               ↓
-                            SQLite
+                          Confidence
+                              ↓
+                           SQLite
 ```
 
 ---
 
-# 🖥️ Streamlit Application
+# 🖥️ Streamlit User Interface
 
 The final application provides a simple interface for interacting with the trained models.
 
@@ -454,20 +737,20 @@ Text Input
 Image Input (optional)
 ```
 
-The application then processes the input and displays:
+After clicking the prediction button, the application processes the input and displays:
 
 ```text
 Predicted Category
 Confidence
-Generated Image Caption (if an image was provided)
 Selected Model
+Generated Image Caption (if an image was provided)
 ```
 
 The prediction is also stored in the SQLite database.
 
 ---
 
-## 🛠️ Technologies
+# 🛠️ Technologies
 
 * Python
 * PyTorch
@@ -482,7 +765,7 @@ The prediction is also stored in the SQLite database.
 
 ---
 
-## 📁 Project Structure
+# 📁 Project Structure
 
 ```text
 project/
@@ -492,16 +775,15 @@ project/
 ├── backend.py
 ├── database.py
 ├── app.py
-├── image_captioning.py
-├── inference.py
+│
+├── ImageCaptioner/
+│   └── ...
 │
 ├── RNN/
 │   └── rnn.py
-    └── ..
 │
 ├── LSTM/
 │   └── train_lstm.py
-    └── .. 
 │
 ├── requirements.txt
 ├── README.md
@@ -510,33 +792,34 @@ project/
 
 ---
 
-## 🚀 How to Run
+# 🚀 How to Run
 
-### 1. Clone the repository
+## 1. Clone the repository
 
 ```bash
-git clone https://github.com/Malkah04/Cellula-week2.git
+git clone <repository-url>
+cd <project-directory>
 ```
 
-### 2. Create a virtual environment
+## 2. Create a Virtual Environment
 
 ```bash
 python3 -m venv .venv
 ```
 
-Activate it:
+Activate the environment:
 
 ```bash
 source .venv/bin/activate
 ```
 
-### 3. Install dependencies
+## 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Run the Streamlit application
+## 4. Run the Streamlit Application
 
 ```bash
 streamlit run app.py
@@ -546,24 +829,35 @@ The application will open in the browser.
 
 ---
 
-## 💡 Key Takeaway
+# 💡 Key Takeaway
 
-This project demonstrates a complete **multi-class toxicity classification system using RNN and LSTM**, starting from raw text data and extending to a functional application.
+This project demonstrates a complete **9-class toxicity classification system using RNN and LSTM**, starting from data preparation and model training and extending to a functional web application.
 
 The project includes:
 
-* Data cleaning and label correction
+* Data inspection and cleaning
+* Manual label correction
+* Duplicate and data quality analysis
+* Class distribution analysis
 * Minority-class augmentation
 * Custom text preprocessing
-* Tokenization and vocabulary building
+* Tokenization
+* Vocabulary building
 * Text-to-sequence conversion
-* Padding and embedding
-* RNN and LSTM classification
+* Padding
+* Embedding
+* RNN classification
+* LSTM classification
+* 9-class toxicity prediction
 * Image captioning using BLIP
 * Text and image input support
 * Backend integration
 * SQLite database storage
 * Streamlit web application
 * Dynamic RNN/LSTM model selection
+* Prediction confidence
+* Prediction history storage
 
-The final system connects the machine learning pipeline to a practical application where users can provide text, images, or both and receive a toxicity classification prediction.
+The final system allows users to provide **text, images, or both**, select either an **RNN or LSTM model**, and receive a classification prediction through an interactive Streamlit application.
+
+The evaluation also demonstrates an important machine learning lesson: for highly imbalanced multi-class datasets, **accuracy alone does not fully describe model performance**. Macro F1 provides additional insight into how well the model performs across both majority and minority classes.
